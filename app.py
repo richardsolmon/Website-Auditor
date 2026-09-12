@@ -36,7 +36,7 @@ def run_audit(url):
     return score, issues, recommendations
 
 def send_email_report(to_email, site_url, score, flaws, recs):
-    # Fetch clean secrets from Streamlit without quotes issues
+    # Fetching clean credential tags
     sender_email = str(st.secrets["GMAIL_USER"]).strip()
     sender_password = str(st.secrets["GMAIL_PASSWORD"]).strip()
     
@@ -65,15 +65,24 @@ def send_email_report(to_email, site_url, score, flaws, recs):
     msg.attach(MIMEText(body, 'html'))
     
     try:
-        # Using secure port 465 to bypass firewall blocks instantly
-        server = smtplib.SMTP_SSL('://gmail.com', 465)
+        # Standard Port 587 configuration with fully explicit routing
+        server = smtplib.SMTP(host='://gmail.com', port=587, timeout=15)
+        server.starttls()
         server.login(sender_email, sender_password)
         server.sendmail(sender_email, to_email, msg.as_string())
         server.close()
         return True
-    except Exception as e:
-        st.error(f"Debug Info: {str(e)}") # Shows exact problem if something fails
-        return False
+    except Exception as e1:
+        try:
+            # Automatic Backup to SSL Port 465 if network restricts TLS
+            server = smtplib.SMTP_SSL(host='://gmail.com', port=465, timeout=15)
+            server.login(sender_email, sender_password)
+            server.sendmail(sender_email, to_email, msg.as_string())
+            server.close()
+            return True
+        except Exception as e2:
+            st.error(f"Connection Alert: Primary failed ({str(e1)}), Backup failed ({str(e2)}). Please check your Streamlit Secrets string spaces.")
+            return False
 
 if submit_button:
     if not url_input or not email_input:
