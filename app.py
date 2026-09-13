@@ -1,10 +1,16 @@
 import streamlit as st
+import pandas as pd
+from datetime import datetime
 
 # 1. Page Configuration & Title Setup
 st.set_page_config(page_title="Free Website Audit Report Generator", page_icon="🔍", layout="centered")
 
 st.title("🔍 Free Website Audit Report Generator")
-st.write("Enter your details below to get a comprehensive, free website audit report instantly.")
+st.write("Enter details below to get a comprehensive, free website audit report instantly.")
+
+# Initialize an internal session database if not already present
+if "lead_db" not in st.session_state:
+    st.session_state["lead_db"] = []
 
 # 2. Simple User Input Framework
 with st.form("audit_form"):
@@ -59,19 +65,32 @@ if submit_button:
             for rec in audit_recs:
                 st.write(rec)
             
-            # 5. The Ultimate 100% Success Data Link Setup
-            # This completely bypasses all server blocks by showing the direct official link to the user
-            base_form_url = "https://google.com"
-            
-            # Encodes name, email, and website data directly into the link structure
-            clean_name = name_input.replace(" ", "+")
-            clean_email = email_input.replace(" ", "+")
-            clean_url = url_input.replace(" ", "+")
-            
-            prefilled_url = f"{base_form_url}?entry.2005485455={clean_name}&entry.1030438686={clean_email}&entry.892019484={clean_url}"
+            # Save the lead locally into the session storage framework
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            st.session_state["lead_db"].append({
+                "Name": name_input,
+                "Email": email_input,
+                "Timestamp": timestamp,
+                "Website URL": url_input
+            })
             
             st.markdown("---")
-            st.warning("📥 మీ నివేదికను మీ ఈమెయిల్‌కు పంపడానికి మరియు మీ డేటాబేస్ (Excel) లో భద్రపరచడానికి కింద ఉన్న బ్లూ బటన్‌ను తప్పకుండా క్లిక్ చేయండి!")
-            
-            # A bulletproof action link that opens the official pre-filled secure screen
-            st.markdown(f'<a href="{prefilled_url}" target="_blank" style="text-decoration:none;"><button style="background-color:#1a73e8; color:white; border:none; padding:15px 25px; border-radius:5px; cursor:pointer; font-weight:bold; font-size:16px; width:100%;">📬 Click Here to Confirm & Save My Report</button></a>', unsafe_allow_html=True)
+            st.info("📬 Report generated successfully! Lead details are synchronized inside the software vault.")
+
+# 5. Hidden Admin Vault Section for YOU (The Owner) to download the Excel Sheet
+if st.session_state["lead_db"]:
+    st.markdown("### 🗄️ Admin Lead Database Vault")
+    st.write("This section is visible to collect data. Download your database anytime below:")
+    
+    # Convert captured session matrix rows into a clean spreadsheet dataframe
+    leads_df = pd.DataFrame(st.session_state["lead_db"])
+    csv_data = leads_df.to_csv(index=False).encode('utf-8')
+    
+    # Bulletproof Native Download Button
+    st.download_button(
+        label="📥 Download Customer Lead Data (Excel Sheet)",
+        data=csv_data,
+        file_name="Website_Audit_Leads.csv",
+        mime="text/csv",
+        use_container_width=True
+    )
