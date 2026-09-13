@@ -5,7 +5,9 @@ st.set_page_config(page_title="Free Website Audit Tool", page_icon="🔍", layou
 st.title("🔍 Free Website Audit & Recommendations")
 st.write("Enter your details below to get a comprehensive, free website audit report delivered straight to your inbox.")
 
+# Updated User Form with Name Field
 with st.form("audit_form"):
+    name_input = st.text_input("Your Full Name", placeholder="John Doe")
     url_input = st.text_input("Website URL", placeholder="example.com")
     email_input = st.text_input("Your Email Address", placeholder="you@example.com")
     st.caption("🔒 Legal Disclosure: Some recommendations in the report may contain affiliate links, which earn us a commission at no extra cost to you.")
@@ -34,22 +36,23 @@ def run_audit(url):
     return score, issues, recommendations
 
 if submit_button:
-    if not url_input or not email_input:
-        st.error("Please fill in both fields.")
+    if not name_input or not url_input or not email_input:
+        st.error("Please fill in all fields.")
     else:
         with st.spinner("Analyzing website structures..."):
             final_score, audit_issues, audit_recs = run_audit(url_input)
             st.success("🎉 Audit complete!")
             st.metric(label="Overall Performance Score", value=f"{final_score}/100")
             
-            # Generate Report Text for Email
             flaws_html = "".join([f"<li>{f}</li>" for f in audit_issues])
             recs_html = "".join([f"<li>{r}</li>" for r in audit_recs])
             
+            # Personalized email body using customer name
             html_body = f"""
             <html>
                 <body>
-                    <h2>Website Audit Report for {url_input}</h2>
+                    <h2>Hi {name_input},</h2>
+                    <p>Thank you for requesting a website audit. Here is the report for <strong>{url_input}</strong>.</p>
                     <p><strong>Overall Score: {final_score}/100</strong></p>
                     <h3>Detected Issues:</h3>
                     <ul>{flaws_html}</ul>
@@ -59,11 +62,13 @@ if submit_button:
             </html>
             """
             
-            # Fire the Google App Script Webhook (Bypasses all network blocks 100%)
             webhook_url = st.secrets["EMAIL_WEBHOOK_URL"]
+            # Added cust_name to payload
             payload = {
+                "cust_name": name_input,
                 "to_email": email_input,
-                "subject": f"Your Website Audit Report for {url_input}",
+                "site_url": url_input,
+                "subject": f"Hi {name_input}, Your Website Audit Report for {url_input}",
                 "body": html_body
             }
             
@@ -71,4 +76,4 @@ if submit_button:
                 response = requests.post(webhook_url, json=payload)
                 st.info(f"📬 The full report has been automatically emailed to: **{email_input}**")
             except Exception as e:
-                st.error("Email delivery interface encounter. Please verify your webapp string inside secrets.")
+                st.error("Email delivery interface encounter.")
