@@ -3,9 +3,8 @@ import requests
 
 st.set_page_config(page_title="Free Website Audit Tool", page_icon="🔍", layout="centered")
 st.title("🔍 Free Website Audit & Recommendations")
-st.write("Enter your details below to get a comprehensive, free website audit report delivered straight to your inbox.")
+st.write("Enter your details below to get a comprehensive, free website audit report.")
 
-# Updated User Form with Name Field
 with st.form("audit_form"):
     name_input = st.text_input("Your Full Name", placeholder="John Doe")
     url_input = st.text_input("Website URL", placeholder="example.com")
@@ -37,43 +36,35 @@ def run_audit(url):
 
 if submit_button:
     if not name_input or not url_input or not email_input:
-        st.error("Please fill in all fields.")
+        st.error("Please fill in both fields.")
     else:
         with st.spinner("Analyzing website structures..."):
             final_score, audit_issues, audit_recs = run_audit(url_input)
+            
+            # Show on screen instantly
             st.success("🎉 Audit complete!")
             st.metric(label="Overall Performance Score", value=f"{final_score}/100")
             
-            flaws_html = "".join([f"<li>{f}</li>" for f in audit_issues])
-            recs_html = "".join([f"<li>{r}</li>" for r in audit_recs])
+            st.subheader("📋 Audit Summary Findings")
+            for issue in audit_issues:
+                st.write(issue)
+                
+            st.subheader("💡 Strategic Recommendations")
+            for rec in audit_recs:
+                st.write(rec)
             
-            # Personalized email body using customer name
-            html_body = f"""
-            <html>
-                <body>
-                    <h2>Hi {name_input},</h2>
-                    <p>Thank you for requesting a website audit. Here is the report for <strong>{url_input}</strong>.</p>
-                    <p><strong>Overall Score: {final_score}/100</strong></p>
-                    <h3>Detected Issues:</h3>
-                    <ul>{flaws_html}</ul>
-                    <h3>Actionable Recommendations:</h3>
-                    <ul>{recs_html}</ul>
-                </body>
-            </html>
-            """
-            
-            webhook_url = st.secrets["EMAIL_WEBHOOK_URL"]
-            # Added cust_name to payload
+            # Send data to Formspree
+            formspree_url = st.secrets["FORMSPREE_URL"]
             payload = {
-                "cust_name": name_input,
-                "to_email": email_input,
-                "site_url": url_input,
-                "subject": f"Hi {name_input}, Your Website Audit Report for {url_input}",
-                "body": html_body
+                "name": name_input,
+                "email": email_input,
+                "website": url_input,
+                "score": f"{final_score}/100"
             }
             
             try:
-                response = requests.post(webhook_url, json=payload)
-                st.info(f"📬 The full report has been automatically emailed to: **{email_input}**")
+                # Bypasses all server blocks instantly
+                requests.post(formspree_url, json=payload)
+                st.info(f"📬 Lead details successfully captured! Check your Formspree dashboard or email inbox.")
             except Exception as e:
-                st.error("Email delivery interface encounter.")
+                st.error(f"Error: {str(e)}")
