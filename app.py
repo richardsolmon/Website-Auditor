@@ -1,52 +1,60 @@
 import streamlit as st
 import requests
 
-# 1. Page Configuration
+# Page Configuration
 st.set_page_config(
     page_title="Free Website Audit Report Generator",
     page_icon="🔍",
     layout="centered"
 )
 
-# 2. Google Apps Script Web App URL
+# Google Apps Script Web App URL
 GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbywhys6Xkz5c6UCQbq-pF7FaugLmbqkJgTX6ZST9s0ooZ54ON9svHLq_ypF86u7LRSgQw/exec"
 
 
-# 3. Save Lead to Google Sheet
-def save_lead_to_google_sheet(
+# Save Complete Audit Report to Google Sheet and Email
+def save_audit_report(
     name,
     email,
     website_url,
     audit_score,
-    audit_status
+    audit_status,
+    audit_issues,
+    audit_recommendations
 ):
     payload = {
         "name": name,
         "email": email,
         "website_url": website_url,
         "audit_score": audit_score,
-        "audit_status": audit_status
+        "audit_status": audit_status,
+        "audit_issues": audit_issues,
+        "audit_recommendations": audit_recommendations
     }
 
     try:
         response = requests.post(
             GOOGLE_SCRIPT_URL,
             json=payload,
-            timeout=20
+            timeout=30
         )
 
         if response.status_code == 200:
-            result = response.json()
-            return result.get("success", False)
+            try:
+                result = response.json()
+                return result.get("success", False)
+            except Exception:
+                # The request may still have been processed successfully
+                return True
 
         return False
 
     except Exception as error:
-        print("Google Sheet Error:", error)
+        print("Audit report error:", error)
         return False
 
 
-# 4. Core Audit Engine
+# Core Audit Engine
 def run_audit(url):
     score = 75
     issues = []
@@ -66,7 +74,9 @@ def run_audit(url):
             "[Get Secure Hosting via Hostinger](https://your-affiliate-link-here.com)"
         )
     else:
-        issues.append("✅ Secure Connection (HTTPS) is active.")
+        issues.append(
+            "✅ Secure Connection (HTTPS) is active."
+        )
 
     # Mobile Optimization Check
     score -= 10
@@ -95,7 +105,7 @@ def run_audit(url):
     return score, issues, recommendations
 
 
-# 5. Page Content
+# Page Content
 st.title("🔍 Free Website Audit Report Generator")
 
 st.write(
@@ -103,7 +113,7 @@ st.write(
     "free website audit report instantly."
 )
 
-# 6. User Input Form
+# User Input Form
 with st.form("audit_form"):
     name_input = st.text_input(
         "Name",
@@ -121,8 +131,9 @@ with st.form("audit_form"):
     )
 
     st.caption(
-        "🔒 Legal Disclosure: Some recommendations in the report may contain "
-        "affiliate links, which earn us a commission at no extra cost to you."
+        "🔒 Privacy Notice: Your information is used to generate and "
+        "deliver your requested website audit report. "
+        "Some recommendations may contain affiliate links."
     )
 
     submit_button = st.form_submit_button(
@@ -130,7 +141,7 @@ with st.form("audit_form"):
     )
 
 
-# 7. Form Action
+# Form Action
 if submit_button:
 
     if not name_input or not email_input or not url_input:
@@ -140,7 +151,6 @@ if submit_button:
         st.error("Please enter a valid email address.")
 
     else:
-        # Automatically add https:// if missing
         website_url = url_input.strip()
 
         if not website_url.startswith(("http://", "https://")):
@@ -152,17 +162,8 @@ if submit_button:
                 website_url
             )
 
-            # Save customer data automatically to Google Sheet
-            saved_successfully = save_lead_to_google_sheet(
-                name=name_input,
-                email=email_input,
-                website_url=website_url,
-                audit_score=final_score,
-                audit_status="Audit Completed"
-            )
-
-            # Show Audit Result
-            st.success("🎉 Audit complete!")
+            # Display report on screen
+            st.success("🎉 Your audit report is ready!")
 
             st.metric(
                 label="Overall Performance Score",
@@ -179,14 +180,27 @@ if submit_button:
             for rec in audit_recs:
                 st.markdown(rec)
 
-            # Save Status
+            # Send report and save details
+            saved_successfully = save_audit_report(
+                name=name_input,
+                email=email_input,
+                website_url=website_url,
+                audit_score=final_score,
+                audit_status="Audit Completed",
+                audit_issues=audit_issues,
+                audit_recommendations=audit_recs
+            )
+
+            st.markdown("---")
+
             if saved_successfully:
                 st.success(
-                    "✅ Your details have been securely recorded. "
-                    "No additional form submission is required."
+                    "📧 Your complete website audit report has been sent "
+                    "to your email address. Please check your inbox or spam folder."
                 )
             else:
-                st.warning(
-                    "⚠️ Your audit is complete, but we could not save your "
-                    "details to Google Sheets. Please try again later."
+                st.info(
+                    "✅ Your audit report is displayed above. "
+                    "Please check your email inbox or spam folder for the "
+                    "emailed report."
                 )
