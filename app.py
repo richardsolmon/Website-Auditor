@@ -9,7 +9,7 @@ st.set_page_config(
 )
 
 # 2. Google Apps Script Web App URL
-GOOGLE_SCRIPT_URL = "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL"
+GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbywhys6Xkz5c6UCQbq-pF7FaugLmbqkJgTX6ZST9s0ooZ54ON9svHLq_ypF86u7LRSgQw/exec"
 
 
 # 3. Save Lead to Google Sheet
@@ -42,7 +42,7 @@ def save_lead_to_google_sheet(
         return False
 
     except Exception as error:
-        st.error(f"Google Sheet connection error: {error}")
+        print("Google Sheet Error:", error)
         return False
 
 
