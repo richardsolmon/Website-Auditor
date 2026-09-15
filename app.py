@@ -670,7 +670,6 @@ def run_audit(url):
 # --------------------------------------------------
 # Save Audit Report to Google Sheet and Email
 # --------------------------------------------------
-
 def save_audit_report(
     name,
     email,
@@ -682,6 +681,7 @@ def save_audit_report(
 ):
     """
     Send the audit report to Google Apps Script.
+    Save customer details to Google Sheet and send email report.
     """
 
     payload = {
@@ -698,22 +698,57 @@ def save_audit_report(
         response = requests.post(
             GOOGLE_SCRIPT_URL,
             json=payload,
-            timeout=30
+            headers={
+                "Content-Type": "application/json"
+            },
+            timeout=30,
+            allow_redirects=True
         )
+
+        # Show the actual Google Apps Script response
+        st.write("Google Apps Script Status Code:", response.status_code)
+        st.write("Google Apps Script Response:", response.text)
 
         if response.status_code == 200:
             try:
                 result = response.json()
-                return result.get("success", False)
-            except Exception:
-                return True
 
+                if result.get("success") is True:
+                    return True
+
+                return False
+
+            except ValueError:
+                # If Apps Script returns a non-JSON response,
+                # show it for troubleshooting.
+                st.warning(
+                    "Google Apps Script did not return a JSON response."
+                )
+                return False
+
+        st.error(
+            f"Google Apps Script returned HTTP status "
+            f"{response.status_code}."
+        )
+        return False
+
+    except requests.exceptions.Timeout:
+        st.error(
+            "The request to Google Apps Script timed out after 30 seconds."
+        )
+        return False
+
+    except requests.exceptions.RequestException as error:
+        st.error(
+            f"Could not connect to Google Apps Script: {error}"
+        )
         return False
 
     except Exception as error:
-        print("Audit report error:", error)
+        st.error(
+            f"Unexpected audit report error: {error}"
+        )
         return False
-
 
 # --------------------------------------------------
 # Page Content
